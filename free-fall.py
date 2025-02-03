@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 G = 1
+L = 10
     
 N = 100
-a, b = 0, 10
+a, b = 0, 100
 E = (b-a)/N
-nbrPart = 50
+nbrPart = 1
 
 def verlet(x0,vx0,y0,vy0):
     x = np.zeros(N)
@@ -18,6 +19,19 @@ def verlet(x0,vx0,y0,vy0):
     for i in range(2,N-1) :
         x[i+1] = 2*x[i]-x[i-1]+E*E*f(x[i],a + i*E)
         y[i+1] = 2*y[i]-y[i-1]+E*E*g(y[i],a + i*E)
+        #Boundry Condition : (rebondi)
+        if x[i+1] > L : 
+            x[i] = 2* L - x[i]
+            x[i+1] = 2*x[i]-(2* L - x[i-1])+E*E*f(x[i],a + i*E)
+        elif x[i+1] < 0 : 
+            x[i] = - x[i]
+            x[i+1] = 2*x[i]-(- x[i-1])+E*E*f(x[i],a + i*E)
+        if y[i+1] > L : 
+            y[i] = 2* L - y[i]
+            y[i+1] = 2*y[i]-(2* L - y[i-1])+E*E*g(y[i],a + i*E)
+        elif y[i+1] < 0 : 
+            y[i] = - y[i]
+            y[i+1] = 2*y[i]-(- y[i-1])+E*E*g(y[i],a + i*E)
     return [x,y]
 
 def f(x,t) :
@@ -25,31 +39,13 @@ def f(x,t) :
 def g(x,t) : 
     return -G
 
-plt.figure()
-
-ymax = 0
 part = []
 for i in range(nbrPart) :
-    theta = np.random.uniform(0, np.pi/2)
-    r = 0#np.random.uniform(0,1)
-    vtheta = np.random.uniform(0, np.pi/2)
+    theta = np.random.uniform(0, np.pi*2)
     v = np.random.uniform(0,1)
     
-    x0, vx0 = r*np.cos(theta) , v*np.cos(vtheta)
-    y0, vy0 = r*np.sin(theta) , v*np.sin(vtheta)
+    x0, vx0 = np.random.uniform(0,L) , v*np.cos(theta)
+    y0, vy0 = np.random.uniform(0,L)  , v*np.sin(theta)
     
-    [x,y] = verlet(x0, vx0,y0,vy0)
-
-    if ymax < max(y) :
-        ymax = max(y)
-        
-    plt.plot(x,y)
-    
-    part.append([x,y] ) #pour sauvegarder nos données dans un tableau
-
-
-plt.ylim(0,ymax)
-plt.xlim(0,2)
-
-
-plt.show()
+    [x,y] = verlet(x0, vx0, y0, vy0)
+    part.append([x,y])
