@@ -69,7 +69,7 @@ for i in range(NbrPart) :
     #r0
     r = np.random.uniform(0, L, 2)
     #v0
-    v = np.random.uniform(0, 1)
+    v = np.random.normal(0, 1)
     theta = np.random.uniform(0, np.pi*2)
 
     #initialisation des premieres positions pour toute les particules
@@ -81,7 +81,7 @@ position_befor = np.array(position_befor)
 
 #calcul des trajectoires avec Verlet
 for i in range(2,N-1) :
-    position_test = 2 * position - position_befor + E * E * f(position, i * E)
+    position_test = np.array(2 * position - position_befor + E * E * f(position, i * E))
     position_befor = position
 
     #Boundry Condition :

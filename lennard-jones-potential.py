@@ -1,30 +1,62 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
-G = 1
+#constante physique
+EPS = 1
+SIGMA = 1
+
+#constante du probleme
+L  = 10 #taille de la boite
+NbrPart = 20 #nombre de particule
+
+#constante de numérisation
+N = 1000 #pour la precision de Verlet
+temps = 10 #temps que l'on simule
+E = temps/N #epsilon dans Verlet
+
+#pour l'aniamtion
+save_frames = True  #si on auvegarde l'animation
+animation_interval = 5  #Intervalle pour l'animation
+
+def animate_trajectory(positions_for_animation, L): #Animation des trajectoires de particule
+    fig, ax = plt.subplots(figsize=(6,6))
+    scat = ax.scatter([], [], s=20) #, color='blue'
+    ax.set_xlim(0, L)
+    ax.set_ylim(0, L)
+    ax.set_title("free-fall")
     
-N = 100
-ta, tb = 0, 10
-E = (tb-ta)/N
-nbrPart = 50
-a, b = 0, 10 #la box
+    def init():
+        scat.set_offsets(np.empty((0, 2)))
+        return (scat,)
+    
+    def update(frame_index):
+        coords = positions_for_animation[frame_index]
+        scat.set_offsets(coords)
+        ax.set_title(f"Frame {frame_index}/{len(positions_for_animation)-1}")
+        return (scat,)
+    
+    #print("Shape for animation:", positions_for_animation.shape)
+    
+    ani = animation.FuncAnimation(
+        fig, update,
+        frames=len(positions_for_animation),
+        init_func=init,
+        blit=True,
+        interval=50 #50ms -> 20fps
+    )
+    #ani.save("free-fall.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
+    #plt.close(fig)
+    plt.show()
 
-def verlet(x0,vx0,y0,vy0):
-    x = np.zeros(N)
-    y = np.zeros(N)
-    x[0] = x0
-    x[1] = x0 - E*vx0
-    y[0] = y0
-    y[1] = y0 - E*vy0
-    for i in range(2,N-1) :
-        x[i+1] = 2*x[i]-x[i-1]+E*E*f(x[i],a + i*E)
-        y[i+1] = 2*y[i]-y[i-1]+E*E*g(y[i],a + i*E)
-    return [x,y]
-
-def f(x,t) :
-    return 0
-def g(x,t) : 
-    return -G
+def f(r,t) : #fonction dans l'équadiff r" = f(r,t)
+    f_list = []
+    for i in range(NbrPart) :
+        #force appliqué sur chaque particule individuelement
+        fx = 0 #composante x de la force
+        fy = 0 #   "      y      "
+        f_list.append([fx,fy])
+    return np.array(f_list)
 
 def force(r,rp) :
     rij = r - rp
@@ -32,30 +64,64 @@ def force(r,rp) :
     return 48*(norme2**(-12)-1/2*norme2*(-6))*rij/norme2
 
 def sumForce(r) :
-    for i in range(nbrPart) :
-        
+    for i in range(NbrPart) :
+        f = 1
+#permet de stocker les positions que l'on souhaite utiliser pour l'animation
+positions_for_animation = [] 
 
-"""
-plt.figure()
+#init des positions
+position = []
+position_before = []
 
-part = []
-for i in range(nbrPart) :
+for i in range(NbrPart) :
+    #condition initial aléatoire pour chaque particule
+    #r0
+    r = np.random.uniform(0, L, 2)
+    #v0
+    v = np.random.normal(0, 1)
+    theta = np.random.uniform(0, np.pi*2)
 
-    vtheta = np.random.uniform(0, np.pi*2)
-    v = np.random.uniform(0,1)
+    #initialisation des premieres positions pour toute les particules
+    position.append(r)
+    position_before.append([r[0] - E * v *np.cos(theta), r[1] - E * v*np.sin(theta)])
+
+position = np.array(position)
+position_before = np.array(position_before)
+
+#calcul des trajectoires avec Verlet
+for i in range(2,N-1) :
+    position_test = 2 * position - position_before + E * E * f(position, i * E)
+
+    #Boundry Condition :
+    #periodic
+    position_before = position
+    position = position_test%L
     
-    x0, vx0 = np.random.uniform(a,b) , v*np.cos(vtheta)
-    y0, vy0 = np.random.uniform(a,b) , v*np.sin(vtheta)
-    
-    [x,y] = verlet(x0, vx0,y0,vy0)
+    """#rebond sur la paroie :  A FINIR
+    for i in range(NbrPart) :
+        #pour x
+        if position_test[i][0] > L :
+            position_test[i][0] = 2 * L - position[i][0]
+            position_test[i][0] = 2 * position_test[i][0] - (2 * L - position_before[i][0]) + E * E * f(position_test, i * E)
+        elif position_test[i][0] < 0 :
+            position_test[i][0] = - position[i][0]
+            position_test[i][0] = 2 * position_test[i][0] - (- position_before[i][0])+ E * E * f(position_test, i * E)
+        #pour y
+        if position_test[i][1] > L :
+            position_test[i][1], position_test[i][0] = 2 * L - position[i][1], position[i][0]
+            position_test[i][1] = 2 * position_test[i][1] -(2 * L - position_before[i][1])+ E * E * f(position_test, i * E)
+        elif position_test[i][1] < 0 :
+            position_test[i][1], position_test[i][0] = - position[i][1], position[i][0]
+            position_test[i][1] = 2 * position_test[i][1] - (- position_before[i][1])+ E * E * f(position_test, i * E)
+    position_before = position
+    position = position_test"""
 
-        
-    plt.plot(x,y)
-    
-    part.append([x,y] ) #pour sauvegarder nos données dans un tableau
+    # stock la position pour l'animation
+    if save_frames and (i % animation_interval == 0) :
+        positions_for_animation.append(np.copy(position))
 
+# lance l'animation
+if save_frames and len(positions_for_animation) > 1:
+    positions_for_animation = np.array(positions_for_animation)
+    animate_trajectory(positions_for_animation, L)
 
-plt.ylim(0,10)
-plt.xlim(0,10)
-
-plt.show()"""
