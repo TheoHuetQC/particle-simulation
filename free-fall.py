@@ -2,19 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-G = 1
+#constante physique
+G = 1 #gravitation
 
-L  = 10
-N = 1000
-NbrPart = 5
-temps = 10
-E = temps/N
+#constante du probleme
+L  = 10 #taille de la boite
+NbrPart = 20 #nombre de particule
+
+#constante de numérisation
+N = 1000 #pour la precision de Verlet
+temps = 10 #temps que l'on simule
+E = temps/N #epsilon dans Verlet
 
 #pour l'aniamtion
-save_frames = True  #Sauvegarde des images pour l'animation
-animation_interval = 50   #Intervalle pour l'animation
+save_frames = True  #si on auvegarde l'animation
+animation_interval = 5  #Intervalle pour l'animation
 
-def animate_trajectory(positions_for_animation, L): #Animation de la trajectoire
+def animate_trajectory(positions_for_animation, L): #Animation des trajectoires de particule
     fig, ax = plt.subplots(figsize=(6,6))
     scat = ax.scatter([], [], s=20) #, color='blue'
     ax.set_xlim(0, L)
@@ -38,49 +42,55 @@ def animate_trajectory(positions_for_animation, L): #Animation de la trajectoire
         frames=len(positions_for_animation),
         init_func=init,
         blit=True,
-        interval=50
+        interval=50 #50ms -> 20fps
     )
-    #ani.save("free-fall.mp4", writer="ffmpeg", fps=20)
+    #ani.save("free-fall.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
     #plt.close(fig)
     plt.show()
 
-def f(r,t) :
-    fx = []
-    fy = []
+def f(r,t) : #fonction dans l'équadiff r" = f(r,t)
+    f = []
     for i in range(NbrPart) :
-        f = 0
-        g = 0
-        fx.append(f)
-        fy.append(g)
-    return np.array([fx, fy])
+        #force appliqué sur chaque particule individuelement
+        fx = 0 #composante x de la force
+        fy = -G #   "      y      "
+        f.append([fx,fy])
+    return np.array(f)
 
-positions_for_animation = []
+#permet de stocker les positions que l'on souhaite utiliser pour l'animation
+positions_for_animation = [] 
 
-#condition initial aléatoire
-#r0
-x0 = np.random.uniform(0, L, NbrPart)
-y0 = np.random.uniform(0, L, NbrPart)
+#init des positions
+position = []
+position_befor = []
 
-#v0
-v = np.random.uniform(0, 1,NbrPart)
-theta = np.random.uniform(0, np.pi*2, NbrPart)
+for i in range(NbrPart) :
+    #condition initial aléatoire pour chaque particule
+    #r0
+    r = np.random.uniform(0, L, 2)
+    #v0
+    v = np.random.uniform(0, 1)
+    theta = np.random.uniform(0, np.pi*2)
 
-position = np.array([x0, y0])
-position_befor = np.array([position[0] - E * v *np.cos(theta), position[1] - E * v*np.sin(theta)])
+    #initialisation des premieres positions pour toute les particules
+    position.append(r)
+    position_befor.append([r[0] - E * v *np.cos(theta), r[1] - E * v*np.sin(theta)])
+
+position = np.array(position)
+position_befor = np.array(position_befor)
 
 #calcul des trajectoires avec Verlet
 for i in range(2,N-1) :
-    #Boundry Condition : 
-    #periodic 
     position_test = 2 * position - position_befor + E * E * f(position, i * E)
-    
     position_befor = position
+
+    #Boundry Condition :
+    #periodic
     position = position_test%L
+
     #rebond sur la paroie :
     #pour x
     """
-    position_test = 2 * position - position_befor + E * E #* f(position, i * E)
-    
     if position_test[0] > L :
         position_test[0], position_test[1] = 2 * L - position[0], position[1]
         position_test[0] = 2 * position_test[0] -(2 * L - position_befor[0])+ E * E #* f(position_test, i * E)
@@ -96,17 +106,11 @@ for i in range(2,N-1) :
         position_test[1] = 2 * position_test[1] - (- position_befor[1])+ E * E #* f(position_test, i * E)
     """   
 
-    # Animation
+    # stock la position pour l'animation
     if save_frames and (i % animation_interval == 0) :
         positions_for_animation.append(np.copy(position))
         
-# Animation
+# lance l'animation
 if save_frames and len(positions_for_animation) > 1:
     positions_for_animation = np.array(positions_for_animation)
     animate_trajectory(positions_for_animation, L)
-"""
-plt.figure()
-for j in range(len(positions_for_animation)) :
-    for i in range(NbrPart) :
-        plt.scatter(positions_for_animation[j][0][i],positions_for_animation[j][1][i])
-plt.show()"""
