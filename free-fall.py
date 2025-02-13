@@ -66,7 +66,7 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
     else :
         plt.show()
         
-def f(v, r ,t) : #fonction dans l'équadiff r" = f(v, r, t)
+def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
     f = []
     for i in range(NbrPart) :
         #force appliqué sur chaque particule individuelement ici F = P + f avec P = MG le poid et f = -K*vitesse les frottements du a l'aire
@@ -74,6 +74,8 @@ def f(v, r ,t) : #fonction dans l'équadiff r" = f(v, r, t)
         fy = -(G * M) - (K* v[i,1]) #   "      y      "
         f.append([fx/ M,fy/ M])
     return np.array(f)
+
+############################### main ###############################
 
 #init des positions
 position = []
@@ -121,7 +123,7 @@ for j in range(2,N-1) :
                 position_befor[i][1] = -position_befor[i][1]  # Inverser la vitesse en y
         position = np.array(position_test)
     else : #bords periodiques
-        position = position_test%L #si x = L + 2 -> x = 2 pour rester dans la boite
+        position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
 
     # stock la position pour l'animation
     if save_frames and (j % animation_interval == 0) : #pour ne pas stocker inutilement
