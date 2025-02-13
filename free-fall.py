@@ -6,10 +6,11 @@ import matplotlib.animation as animation
 
 #constante physique
 G = 10 #gravitation
-K = 0.5 #frottement
+K = 0.01 #frottement
 M = 1 #masse dune particule
+E = 0.5 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
 
-#constante du probleme
+#constante du problème
 L  = 10 #taille de la boite
 NbrPart = 20 #nombre de particule
 
@@ -18,8 +19,8 @@ REBOND = True #la particule rebondi sur les parroies True = oui, False = non (et
 
 #constante de numérisation
 N = 1000 #pour la precision de Verlet
-temps = 10 #temps que l'on simule
-E = temps/N #epsilon dans Verlet
+TEMPS = 10 #temps que l'on simule
+EPSILON = TEMPS/N #epsilon dans Verlet
 
 #pour l'aniamtion
 save_frames = True  #si on fait une annimation
@@ -36,9 +37,10 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
     #le titre depend des paramametres de depart
     title = "free-fall"
     title += " avec rebonds" if REBOND else " avec conditions periodiques aux bords"
-    title += " (N = " + str(NbrPart) + ")"
+    title += ", (N = " + str(NbrPart) + ")"
     title += ", \nGravité (G = " + str(G) + ")" if (G != 0) else "\n"
-    title += " et Frottements fluide/particules (K = "+ str(K) +")." if (K != 0) else "."
+    title += ", coefficient d'Elasticité (E = " + str(E) + ")" if (E != 1 and REBOND) else ""
+    title += "\n et Frottements fluide/particules (K = "+ str(K) +")" if (K != 0) else ""
     ax.set_title(title)
     
     def init():
@@ -61,7 +63,7 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
         interval=50 #50ms -> 20fps
     )
     if save_animation :
-        ani.save(title.replace(" ","_").replace("'","-").replace(",","-").replace("\n","") + ".mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
+        ani.save("free-fall.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
         plt.close(fig)
     else :
         plt.show()
@@ -92,15 +94,15 @@ for i in range(NbrPart) :
 
     #initialisation des premieres positions pour toute les particules
     position.append(r)
-    position_befor.append([r[0] - E * v *np.cos(theta), r[1] - E * v*np.sin(theta)]) #pour utiliser la methode de résolution d'equation diff de Verlet
+    position_befor.append([r[0] - EPSILON * v *np.cos(theta), r[1] - EPSILON * v*np.sin(theta)]) #pour utiliser la methode de résolution d'equation diff de Verlet
 
 position = np.array(position)
 position_befor = np.array(position_befor)
 
 #calcul des trajectoires avec Verlet
 for j in range(2,N-1) :
-    vitesses = (position - position_befor) / E #vitesse des particules
-    position_test = 2 * position - position_befor + E * E * f(vitesses ,position, j * E) #calcule de la position d'apres avec Verlet
+    vitesses = (position - position_befor) / EPSILON #vitesse des particules
+    position_test = 2 * position - position_befor + EPSILON * EPSILON * f(vitesses ,position, j * EPSILON) #calcule de la position d'apres avec Verlet
     position_befor = position #on conserve la position de la particule juste avant
     
     #Boundry Condition au choix :
@@ -109,18 +111,18 @@ for j in range(2,N-1) :
         for i in range(NbrPart):  # Pour chaque particule
             # Pour x
             if position_test[i][0] > L:  # Si la particule dépasse le bord droit
-                position_test[i][0] = 2 * L - position_test[i][0]  # Inverser la position
+                position_test[i][0] = (1 + E) * L - E * position_test[i][0]  # Inverser la position
                 position_befor[i][0] = 2 * L - position_befor[i][0]  # Inverser la vitesse en x
             elif position_test[i][0] < 0:  # Si la particule dépasse le bord gauche
-                position_test[i][0] = -position_test[i][0]  # Inverser la position
-                position_befor[i][0] = -position_befor[i][0]  # Inverser la vitesse en x
+                position_test[i][0] = - E * position_test[i][0] # Inverser la position
+                position_befor[i][0] = - position_befor[i][0]  # Inverser la vitesse en x
             # Pour y
             if position_test[i][1] > L:  # Si la particule dépasse le bord supérieur
-                position_test[i][1] = 2 * L - position_test[i][1]  # Inverser la position
+                position_test[i][1] = (1 + E) * L - E * position_test[i][1]  # Inverser la position
                 position_befor[i][1] = 2 * L - position_befor[i][1]  # Inverser la vitesse en y
             elif position_test[i][1] < 0:  # Si la particule dépasse le bord inférieur
-                position_test[i][1] = -position_test[i][1]  # Inverser la position
-                position_befor[i][1] = -position_befor[i][1]  # Inverser la vitesse en y
+                position_test[i][1] = - E * position_test[i][1]  # Inverser la position
+                position_befor[i][1] = - position_befor[i][1]  # Inverser la vitesse en y
         position = np.array(position_test)
     else : #bords periodiques
         position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
