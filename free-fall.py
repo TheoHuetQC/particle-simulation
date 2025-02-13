@@ -71,7 +71,7 @@ def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
     for i in range(NbrPart) :
         #force appliqué sur chaque particule individuelement ici F = P + f avec P = MG le poid et f = -K*vitesse les frottements du a l'aire
         fx = 0 - (K* v[i,0]) #composante x de la force
-        fy = -(G * M) - (K* v[i,1]) #   "      y      "
+        fy = -(G * M) - (K* v[i,1]) #  " y    "
         f.append([fx/ M,fy/ M])
     return np.array(f)
 
