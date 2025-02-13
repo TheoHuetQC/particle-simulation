@@ -80,34 +80,34 @@ position = np.array(position)
 position_befor = np.array(position_befor)
 
 #calcul des trajectoires avec Verlet
-for i in range(2,N-1) :
-    position_test = np.array(2 * position - position_befor + E * E * f(position, i * E))
+for j in range(2,N-1) :
+    position_test = 2 * position - position_befor + E * E * f(position, j * E)
     position_befor = position
-
-    #Boundry Condition :
-    #periodic
+    
+    #Boundry Condition au choix :
+    """#periodic
     position = position_test%L
-
-    #rebond sur la paroie :
-    #pour x
     """
-    if position_test[0] > L :
-        position_test[0], position_test[1] = 2 * L - position[0], position[1]
-        position_test[0] = 2 * position_test[0] -(2 * L - position_befor[0])+ E * E #* f(position_test, i * E)
-    elif position_test[0] < 0 :
-        position_test[0], position_test[1] = - position[0], position[1]
-        position_test[0] = 2 * position_test[0] - (- position_befor[0])+ E * E #* f(position_test, i * E)
-    #pour y
-    if position_test[1] > L :
-        position_test[1], position_test[0] = 2 * L - position[1], position[0]
-        position_test[1] = 2 * position_test[1] -(2 * L - position_befor[1])+ E * E #* f(position_test, i * E)
-    elif position_test[1] < 0 :
-        position_test[1], position_test[0] = - position[1], position[0]
-        position_test[1] = 2 * position_test[1] - (- position_befor[1])+ E * E #* f(position_test, i * E)
-    """   
+    # rebond sur la paroie :
+    for i in range(NbrPart):  # Pour chaque particule
+        # Pour x
+        if position_test[i][0] > L:  # Si la particule dépasse le bord droit
+            position_test[i][0] = 2 * L - position_test[i][0]  # Inverser la position
+            position_befor[i][0] = -position_befor[i][0]  # Inverser la vitesse en x
+        elif position_test[i][0] < 0:  # Si la particule dépasse le bord gauche
+            position_test[i][0] = -position_test[i][0]  # Inverser la position
+            position_befor[i][0] = -position_befor[i][0]  # Inverser la vitesse en x
+        # Pour y
+        if position_test[i][1] > L:  # Si la particule dépasse le bord supérieur
+            position_test[i][1] = 2 * L - position_test[i][1]  # Inverser la position
+            position_befor[i][1] = -position_befor[i][1]  # Inverser la vitesse en y
+        elif position_test[i][1] < 0:  # Si la particule dépasse le bord inférieur
+            position_test[i][1] = -position_test[i][1]  # Inverser la position
+            position_befor[i][1] = -position_befor[i][1]  # Inverser la vitesse en y
+    position = np.array(position_test)
 
     # stock la position pour l'animation
-    if save_frames and (i % animation_interval == 0) :
+    if save_frames and (j % animation_interval == 0) :
         positions_for_animation.append(np.copy(position))
         
 # lance l'animation
