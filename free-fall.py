@@ -22,8 +22,9 @@ temps = 10 #temps que l'on simule
 E = temps/N #epsilon dans Verlet
 
 #pour l'aniamtion
-save_frames = True  #si on auvegarde l'animation
-animation_interval = 5  #Intervalle pour l'animation
+save_frames = True  #si on fait une annimation
+save_animation = False #si on sauvegarde l'animation sur la machine
+animation_interval = 5  #Intervalle pour l'animation (tout les combiens de step on sauvegarde les positions)
 
 ############################### fonctions ###############################
 
@@ -32,10 +33,12 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
     scat = ax.scatter([], [], s=20) #, color='blue'
     ax.set_xlim(0, L)
     ax.set_ylim(0, L)
+    #le titre depend des paramametres de depart
     title = "free-fall"
     title += " avec rebonds" if REBOND else " avec conditions periodiques aux bords"
-    title += ", \nGravité" if (G != 0) else "\n"
-    title += " et Frottement de l'aire." if (K != 0) else "."
+    title += " (N = " + str(NbrPart) + ")"
+    title += ", \nGravité (G = " + str(G) + ")" if (G != 0) else "\n"
+    title += " et Frottements fluide/particules (K = "+ str(K) +")." if (K != 0) else "."
     ax.set_title(title)
     
     def init():
@@ -57,10 +60,12 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
         blit=True,
         interval=50 #50ms -> 20fps
     )
-    #ani.save("free-fall.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
-    #plt.close(fig)
-    plt.show()
-
+    if save_animation :
+        ani.save(title.replace(" ","_").replace("'","-").replace(",","-").replace("\n","") + ".mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
+        plt.close(fig)
+    else :
+        plt.show()
+        
 def f(v, r ,t) : #fonction dans l'équadiff r" = f(v, r, t)
     f = []
     for i in range(NbrPart) :
