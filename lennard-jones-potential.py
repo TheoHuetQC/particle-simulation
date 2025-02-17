@@ -4,27 +4,29 @@ import matplotlib.animation as animation
 
 ############################### paramètres ###############################
 
-#constante physique
+#constante physique :
 SIGMA = 1 #distance at which the particle-particle potential energy V is zero
 EPS = 1 #depth of the potential well
 G = 0 #gravitation
 K = 0 #frottement
 M = 1 #masse dune particule
-E = 0.5 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
+E = 1 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
+T = 1 # Temperature
 
-#constante du problème
+#constante du problème :
 L  = 10 #taille de la boite
-NbrPart = 20 #nombre de particule
+NbrPart = 200 #nombre de particule
+D = 2 #dimention du probléme
 
 #Boundry condition :
-REBOND = False #la particule rebondi sur les parroies True = oui, False = non (et les particules on des conditions aux bords periodique)
+REBOND = True #la particule rebondi sur les parroies True = oui, False = non (et les particules on des conditions aux bords periodique)
 
-#constante de numérisation
-N = 1000 #pour la precision de Verlet
-TEMPS = 10 #temps que l'on simule
+#constante de numérisation :
+N = 5000 #pour la precision de Verlet
+TEMPS = 1 #temps que l'on simule
 EPSILON = TEMPS/N #epsilon dans Verlet
 
-#pour l'aniamtion
+#pour l'aniamtion :
 save_frames = True  #si on fait une annimation
 save_animation = False #si on sauvegarde l'animation sur la machine
 animation_interval = 5  #Intervalle pour l'animation (tout les combiens de step on sauvegarde les positions)
@@ -70,54 +72,70 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
     else :
         plt.show()
 
-def force_LJ(r,rp) : #force de Lennard Jones entre la particule en position r et celle en position rp
-    rij = r - rp
-    norme2 = np.linalg.norm(rij) #calcule de la norme au carré
-    return 48 * EPS *(SIGMA**12 * norme2**(-12)-1/2* SIGMA**6* norme2*(-6))* rij / norme2
+def init_lattice() : 
+    position, position_before = [], []
+    part_side = int(np.sqrt(NbrPart))
+    spacing = L
+    if part_side**2 < NbrPart :  #Si le nombre de particules n'est pas un carré parfait
+        part_side += 1
+    spacing = L/part_side
+    for i in range(part_side) :
+        for j in range(part_side) :
+            if len(position) < NbrPart: 
+                x = (i + 0.5) * spacing
+                y = (j + 0.5) * spacing
+                position.append([x, y])
+    vx = np.random.normal(0.0, np.sqrt(T), NbrPart)  #Vitesses selon x
+    vy = np.random.normal(0.0, np.sqrt(T), NbrPart)
+    vx -= np.mean(vx) #Centrage des vitesses
+    vy -= np.mean(vy)
+    v = np.column_stack((vx, vy))
+    position_before = position - EPSILON * v #pour utiliser la methode de résolution d'equation diff de Verlet
+    return np.array(position), np.array(position_before)
 
-def forces_LJ(r) : #je rempli un tableau NbrPart x NbrPart avec les Fij etant les forces de la particule i avec la particule j
+def lennardJ(r,rp) : #force de Lennard Jones entre la particule en position r et celle en position rp
+    """if r[0] - rp[0] > L/2 :
+        rp[0] = rp[0] - L
+    elif rp[0] - r[0] > L/2 :
+        rp[0]"""
+    if REBOND : # CA MARCHE PAS SANS REBOND
+        rij = r - rp
+    else :
+        rij = (r - rp)%L/2
+    norme = np.linalg.norm(rij) #calcule de la norme au carré
+    return 48 * EPS *(SIGMA**12 * norme**(-12)-1/2* SIGMA**6* norme*(-6))* rij / norme**2
+
+def gravity() : #force de gravité
+    gravity_forces = [0,-G * M] #on peut mettre M[i] si on a un tableau de particule avec plusieur masse
+    return gravity_forces
+
+def friction(v) : # force frottements fluides
+    friction_forces = - K * v
+    return friction_forces
+    
+def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
     forces = []
-    for i in range(NbrPart) :
-        forces.append([])
+    interaction_forces_matrix = []
+    interaction_forces = []
+    for i in range(NbrPart) : #je rempli un tableau NbrPart * NbrPart avec les Fij etant les forces de la particule i interagisant avec la particule j
+        interaction_forces_matrix.append([])
         for j in range(NbrPart) :
             if i == j : #la particule n'interagie pas avec elle
-                forces[i].append(np.zeros(2))
+                force_LJ = np.zeros(D)
             elif i > j : #le cas i j est antysimetrique a celui j i
-                forces[i].append(- forces[j][i])
+                force_LJ = - interaction_forces_matrix[j][i]
             else : #on calcule la force
-                forces[i].append(force_LJ(r[i],r[j]))
-    return np.array(forces)
-
-def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
-    f = []
-    for i in range(NbrPart) :
-        #force appliqué sur chaque particule individuelement ici F = P + f avec P = MG le poid et f = -K*vitesse les frottements du a l'aire
-        fx = 0 - (K* v[i,0]) - np.sum(forces_LJ(r)[i][0])#composante x de la force
-        fy = -(G * M) - (K* v[i,1]) + np.sum(forces_LJ(r)[i][1]) #  " y    "
-        f.append([fx/ M,fy/ M])
-    return np.array(f)
+                force_LJ = lennardJ(r[i],r[j])
+            interaction_forces_matrix[i].append(force_LJ) #+ d autre force d interaction si besoin
+        interaction_forces.append(np.sum(interaction_forces_matrix[i],axis=0))
+        forces.append(gravity() + friction(v[i]) + interaction_forces[i])
+    return np.array(forces)/M
 
 ############################### main ###############################
 
 #init des positions
-position = []
-position_before = []
+position, position_before = init_lattice()
 positions_for_animation = [] #permet de stocker les positions que l'on souhaite utiliser pour l'animation
-
-for i in range(NbrPart) :
-    #condition initial aléatoire pour chaque particule
-    #r0
-    r = np.random.uniform(0, L, 2)
-    #v0
-    v = np.random.normal(0, 1)
-    theta = np.random.uniform(0, np.pi*2)
-
-    #initialisation des premieres positions pour toute les particules
-    position.append(r)
-    position_before.append([r[0] - EPSILON * v *np.cos(theta), r[1] - EPSILON * v*np.sin(theta)]) #pour utiliser la methode de résolution d'equation diff de Verlet
-
-position = np.array(position)
-position_before = np.array(position_before)
 
 #calcul des trajectoires avec Verlet
 for j in range(2,N-1) :
@@ -129,21 +147,20 @@ for j in range(2,N-1) :
     
     if REBOND : # rebond sur la paroie :
         for i in range(NbrPart):  # Pour chaque particule
-            # Pour x
-            if position_test[i][0] > L:  # Si la particule dépasse le bord droit
-                position_test[i][0] = (1 + E) * L - E * position_test[i][0]  # Inverser la position
-                position_before[i][0] = 2 * L - position_before[i][0]  # Inverser la vitesse en x
-            elif position_test[i][0] < 0:  # Si la particule dépasse le bord gauche
-                position_test[i][0] = - E * position_test[i][0] # Inverser la position
-                position_before[i][0] = - position_before[i][0]  # Inverser la vitesse en x
-            # Pour y
-            if position_test[i][1] > L:  # Si la particule dépasse le bord supérieur
-                position_test[i][1] = (1 + E) * L - E * position_test[i][1]  # Inverser la position
-                position_before[i][1] = 2 * L - position_before[i][1]  # Inverser la vitesse en y
-            elif position_test[i][1] < 0:  # Si la particule dépasse le bord inférieur
-                position_test[i][1] = - E * position_test[i][1]  # Inverser la position
-                position_before[i][1] = - position_before[i][1]  # Inverser la vitesse en y
+            j = 0
+            for d in range(D) :
+                while position_test[i][d] > L or position_test[i][d] < 0 :
+                    if position_test[i][d] > L:  # Si la particule dépasse le bord supérieur
+                        position_test[i][d] = (1 + E) * L - E * position_test[i][d]  # Inverser la position
+                        position_before[i][d] = 2 * L - position_before[i][d]  # Inverser la vitesse 
+                    elif position_test[i][d] < 0:  # Si la particule dépasse le bord inférieur
+                        position_test[i][d] = - E * position_test[i][d]  # Inverser la position
+                        position_before[i][d] = - position_before[i][d]  # Inverser la vitesse
+                    j += 1
+                    if j > 10 :
+                        break
         position = np.array(position_test)
+        
     else : #bords periodiques
         position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
 

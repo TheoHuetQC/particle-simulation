@@ -81,7 +81,7 @@ def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
 
 #init des positions
 position = []
-position_befor = []
+position_before = []
 positions_for_animation = [] #permet de stocker les positions que l'on souhaite utiliser pour l'animation
 
 for i in range(NbrPart) :
@@ -94,16 +94,16 @@ for i in range(NbrPart) :
 
     #initialisation des premieres positions pour toute les particules
     position.append(r)
-    position_befor.append([r[0] - EPSILON * v *np.cos(theta), r[1] - EPSILON * v*np.sin(theta)]) #pour utiliser la methode de résolution d'equation diff de Verlet
+    position_before.append([r[0] - EPSILON * v *np.cos(theta), r[1] - EPSILON * v*np.sin(theta)]) #pour utiliser la methode de résolution d'equation diff de Verlet
 
 position = np.array(position)
-position_befor = np.array(position_befor)
+position_before = np.array(position_before)
 
 #calcul des trajectoires avec Verlet
 for j in range(2,N-1) :
-    vitesses = (position - position_befor) / EPSILON #vitesse des particules
-    position_test = 2 * position - position_befor + EPSILON * EPSILON * f(vitesses ,position, j * EPSILON) #calcule de la position d'apres avec Verlet
-    position_befor = position #on conserve la position de la particule juste avant
+    vitesses = (position - position_before) / EPSILON #vitesse des particules
+    position_test = 2 * position - position_before + EPSILON * EPSILON * f(vitesses ,position, j * EPSILON) #calcule de la position d'apres avec Verlet
+    position_before = position #on conserve la position de la particule juste avant
     
     #Boundry Condition au choix :
     
@@ -112,17 +112,17 @@ for j in range(2,N-1) :
             # Pour x
             if position_test[i][0] > L:  # Si la particule dépasse le bord droit
                 position_test[i][0] = (1 + E) * L - E * position_test[i][0]  # Inverser la position
-                position_befor[i][0] = 2 * L - position_befor[i][0]  # Inverser la vitesse en x
+                position_before[i][0] = 2 * L - position_before[i][0]  # Inverser la vitesse en x
             elif position_test[i][0] < 0:  # Si la particule dépasse le bord gauche
                 position_test[i][0] = - E * position_test[i][0] # Inverser la position
-                position_befor[i][0] = - position_befor[i][0]  # Inverser la vitesse en x
+                position_before[i][0] = - position_before[i][0]  # Inverser la vitesse en x
             # Pour y
             if position_test[i][1] > L:  # Si la particule dépasse le bord supérieur
                 position_test[i][1] = (1 + E) * L - E * position_test[i][1]  # Inverser la position
-                position_befor[i][1] = 2 * L - position_befor[i][1]  # Inverser la vitesse en y
+                position_before[i][1] = 2 * L - position_before[i][1]  # Inverser la vitesse en y
             elif position_test[i][1] < 0:  # Si la particule dépasse le bord inférieur
                 position_test[i][1] = - E * position_test[i][1]  # Inverser la position
-                position_befor[i][1] = - position_befor[i][1]  # Inverser la vitesse en y
+                position_before[i][1] = - position_before[i][1]  # Inverser la vitesse en y
         position = np.array(position_test)
     else : #bords periodiques
         position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
