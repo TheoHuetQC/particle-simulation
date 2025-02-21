@@ -12,25 +12,24 @@ G = 0 #gravitation
 K = 0 #frottement
 M = 1 #masse dune particule
 E = 1 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
-Ti = 5 # Temperature initial
+Ti = 1 # Temperature initial
 Tf = 10 # T final
 KB = 1 #cst de Boltzman
 
 #constante du problème :
 L  = 10 #taille de la boite
-NbrPart = 8 #nombre de particule
+NbrPart = 20 #nombre de particule
 D = 2 #dimention du probléme
 
 #Boundry condition :
 REBOND = False #la particule rebondi sur les parroies True = oui, False = non (et les particules on des conditions aux bords periodique)
 
 #constante de numérisation :
-N = 50000 #pour la precision de Verlet
-TIME = 100 #temps que l'on simule
+N = 3000 #pour la precision de Verlet
+TIME = 1 #temps que l'on simule
 EPSILON = TIME/N #epsilon dans Verlet
-EQUILIBRE_TIME = 5000
+EQUILIBRE_TIME = 3000
 NU = 0.01
-
 #pour l'aniamtion :
 save_frames = True  #si on fait une annimation
 save_animation = False #si on sauvegarde l'animation sur la machine
@@ -99,17 +98,17 @@ def init_lattice() :
     vy -= np.mean(vy)
     v = np.column_stack((vx, vy))
     position_before = position - EPSILON * v #pour utiliser la methode de résolution d'equation diff de Verlet
-    position, position_before = equilibrium_state(np.array(position), np.array(position_before)) #on thermalise notre systeme
+    position, position_before = equilibrium_state(np.array(position), np.array(position_before), Ti) #on thermalise notre systeme
     return position, position_before
 
-def simulate(position, position_before, j) :
+def simulate(position, position_before, i, T) :
     vitesses = (position - position_before) / EPSILON #vitesse des particules
-    vitesses = apply_andersen_thermostat(vitesses, Tf) # Appliquer le thermostat d'Andersen aux vitesses
+    vitesses = apply_andersen_thermostat(vitesses, T) # Appliquer le thermostat d'Andersen aux vitesses
     
     # Recalculer les positions avant en fonction des vitesses corrigées
     position_before = position - EPSILON * vitesses
 
-    position_test = 2 * position - position_before + EPSILON * EPSILON * f(vitesses ,position, j * EPSILON) #calcule de la position d'apres avec Verlet
+    position_test = 2 * position - position_before + EPSILON * EPSILON * f(vitesses ,position, i * EPSILON) #calcule de la position d'apres avec Verlet
     position_before = position #on conserve la position de la particule juste avant
     
     #Boundry Condition au choix :
@@ -134,21 +133,22 @@ def simulate(position, position_before, j) :
         position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
     return position, position_before
 
-def equilibrium_state(position, position_before) : #on laisse le systeme ce mettre a un etat d'équilibre apres sa génération
+def equilibrium_state(position, position_before, T) : #on laisse le systeme ce mettre a un etat d'équilibre apres sa génération
     for t in range(EQUILIBRE_TIME) :
-        position, position_before = simulate(position, position_before, t)
+        position, position_before = simulate(position, position_before, t, T)
     return position, position_before
 
 def compute_temperature(v) : #Calcule la température instantanée du système à partir des vitesses
-    Ke = 0.5 * M * np.sum(v**2)  # Énergie cinétique totale
+    Ke = 0.5 * M * np.sum(v*v)  # Énergie cinétique totale
     N_d = NbrPart * D  # Nombre total de degrés de liberté
     T_inst = (2 * Ke) / (N_d)  # k_B = 1 en unités réduites
     return T_inst
 
 def apply_andersen_thermostat(v, T): #Applique le thermostat d'Andersen en remplaçant aléatoirement les vitesses
     for i in range(NbrPart) :
-        if np.random.rand() < NU * EPSILON:  # Collision avec probabilité ν * dt
+        if np.random.rand() <= EPSILON / NU :  # Collision avec probabilité ν * dt
             v[i] = np.random.normal(0.0, np.sqrt(KB * T / M), D)  # Nouvelle vitesse
+            print("1", end = " ")
     return v
 
 def lennardJ(ri,rj) : #force de Lennard Jones entre la particule en position ri et celle en position rj
@@ -161,7 +161,7 @@ def lennardJ(ri,rj) : #force de Lennard Jones entre la particule en position ri 
                 rij[d] += L
     norme = np.linalg.norm(rij) #calcule de la norme au carré
     if norme > L/2 :
-        return 0
+        return np.zeros(D)
     return 48 * EPS *(SIGMA**12 * norme**(-12)-1/2* SIGMA**6* norme*(-6))* rij / norme**2
 
 def gravity(i) : #force de gravité
@@ -204,7 +204,7 @@ pas_temps = []
 
 #calcul des trajectoires avec Verlet
 for j in range(N) :
-    position, position_before = simulate(position, position_before, j)
+    position, position_before = simulate(position, position_before, j, Tf)
 
     # stock la position pour l'animation
     if save_frames and (j % animation_interval == 0) : #pour ne pas stocker inutilement
