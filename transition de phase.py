@@ -16,10 +16,10 @@ KB = 1 #cst de Boltzman
 
 #constante du problème :
 L  = 10 #taille de la boite
-NbrPart = 80 #nombre de particule
-Ti = 3 # Temperature initial
+NbrPart = 90 #nombre de particule
+Ti = 35 # Temperature initial
 Tf = 1 # T final
-T_STEPS = 5 #nombre de pas de Température avant d atteindre Tf
+T_STEPS = 35 #nombre de pas de Température avant d atteindre Tf
 TEMPERATURE = np.linspace(Ti, Tf, T_STEPS)
 D = 2 #dimention du probléme
 
@@ -27,16 +27,19 @@ D = 2 #dimention du probléme
 REBOND = False #la particule rebondi sur les parroies True = oui, False = non (et les particules on des conditions aux bords periodique)
 
 #constante de numérisation :
-N = 10000 #pour la precision de Verlet
+N = 30000 #pour la precision de Verlet
 TIME = 10 #temps que l'on simule
 EPSILON = TIME/N #epsilon dans Verlet
-EQUILIBRE_TIME = 2 * N // T_STEPS
-NU = 0.01
+EQUILIBRE_TIME = 3 * N // T_STEPS
+NU = 100
 
 #pour l'aniamtion :
 save_frames = True  #si on fait une annimation
 save_animation = True #si on sauvegarde l'animation sur la machine
 animation_interval = 5  #Intervalle pour l'animation (tout les combiens de step on sauvegarde les positions)
+
+#pour les mesures :
+mesure_interval = 100
 
 ############################### fonctions ###############################
 
@@ -147,11 +150,11 @@ def compute_temperature(v) : #Calcule la température instantanée du système �
     Ke = 0.5 * M * np.sum(v*v)  # Énergie cinétique totale
     N_d = NbrPart * D  # Nombre total de degrés de liberté
     T_inst = (2 * Ke) / (N_d)  # k_B = 1 en unités réduites
-    return T_inst
+    return T_inst, Ke
 
 def apply_andersen_thermostat(v, T): #Applique le thermostat d'Andersen en remplaçant aléatoirement les vitesses
     for i in range(NbrPart) :
-        if np.random.rand() <= EPSILON / NU :  # Collision avec probabilité ν * dt
+        if np.random.rand() <= EPSILON * NU :  # Collision avec probabilité ν * dt
             v[i] = np.random.normal(0.0, np.sqrt(KB * T / M), D)  # Nouvelle vitesse
             #print("1", end = " ") #debugage pour savoir combien de fois ca a changer de vitesse
     return v
@@ -202,11 +205,12 @@ start_time = time.perf_counter()
 #init des positions
 T_int = 0 #la combientième temperature intermediaire a la quelle on est ici la premiere donc Ti
 position, vitesses = init_lattice(TEMPERATURE[T_int])
-print(f"{0000}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {compute_temperature(vitesses)}")
+print(f"0000/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {compute_temperature(vitesses)}")
 
-#init des resultats
+#init pour les résultats
 positions_for_animation = [] #permet de stocker les positions que l'on souhaite utiliser pour l'animation
-temperature_evolution, pas_temps = [], []
+mesure_time, temperature_evolution, kinetic_evolution = [], [], []
+T_inst, K_inst = 0, 0
 
 #calcul des trajectoires avec Verlet
 for i in range(N) :
@@ -214,17 +218,32 @@ for i in range(N) :
 
     #change de temperature tout les {N / len(TEMPERATURE)} pas jusqu'a atteindre Tf
     if N / len(TEMPERATURE) <= i - T_int * N / len(TEMPERATURE) :
+        print(f"{i}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {temperature_evolution[-1]}")
         T_int += 1
-        print(f"{i}/{N}, température visé : {TEMPERATURE[T_int - 1]}, température acctuel : {T_inst}")
 
     # stock la position pour l'animation et la température pour le graphique
     if save_frames and (i % animation_interval == 0) : #pour ne pas stocker inutilement
         positions_for_animation.append(np.copy(position))
-        
-        T_inst = compute_temperature(vitesses)
+    
+    # mesure des moyennes de température
+    T_temp, K_temp = compute_temperature(vitesses)
+    T_inst += T_temp
+    K_inst += K_temp
+    if (i % mesure_interval == 0) :
+        # mesure Température
+        T_inst /= mesure_interval #fait une moyenne
         temperature_evolution.append(T_inst)
-        pas_temps.append(i*EPSILON)
-print(f"{N}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {T_inst}")
+        T_inst = 0
+
+        # mesure de l'énérgie cinetique
+        K_inst /= mesure_interval #fait une moyenne
+        kinetic_evolution.append(K_inst)
+        K_inst = 0
+
+        # temps ou on a fait la mesure
+        mesure_time.append(i*EPSILON)
+        
+print(f"{N}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {temperature_evolution[-1]}")
 
 #temps que met le programme
 end_time = time.perf_counter()
@@ -235,9 +254,10 @@ print(f"Programme exécuté en : {convert(execution_time)}")
 if save_frames and len(positions_for_animation) > 1 :
     positions_for_animation = np.array(positions_for_animation)
     animate_trajectory(positions_for_animation, L)
-    
-plt.plot(pas_temps, temperature_evolution)
-plt.xlabel("Pas de temps")
+
+# affiche les courbes de mesures
+plt.plot(mesure_time, temperature_evolution)
+plt.xlabel("Temps")
 plt.ylabel("Température")
 plt.title("Évolution de la température")
 plt.show()
