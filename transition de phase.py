@@ -11,28 +11,31 @@ EPS = 1 #depth of the potential well
 G = 0 #gravitation
 K = 0 #frottement
 M = 1 #masse dune particule
-E = 1 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
-Ti = 1 # Temperature initial
-Tf = 10 # T final
+E = 0.8 #coefficient d'élasticité des rebonds, 1 si choque élastique (0 < E <= 1)
 KB = 1 #cst de Boltzman
 
 #constante du problème :
 L  = 10 #taille de la boite
-NbrPart = 20 #nombre de particule
+NbrPart = 80 #nombre de particule
+Ti = 3 # Temperature initial
+Tf = 1 # T final
+T_STEPS = 5 #nombre de pas de Température avant d atteindre Tf
+TEMPERATURE = np.linspace(Ti, Tf, T_STEPS)
 D = 2 #dimention du probléme
 
 #Boundry condition :
 REBOND = False #la particule rebondi sur les parroies True = oui, False = non (et les particules on des conditions aux bords periodique)
 
 #constante de numérisation :
-N = 3000 #pour la precision de Verlet
-TIME = 1 #temps que l'on simule
+N = 10000 #pour la precision de Verlet
+TIME = 10 #temps que l'on simule
 EPSILON = TIME/N #epsilon dans Verlet
-EQUILIBRE_TIME = 3000
+EQUILIBRE_TIME = 2 * N // T_STEPS
 NU = 0.01
+
 #pour l'aniamtion :
 save_frames = True  #si on fait une annimation
-save_animation = False #si on sauvegarde l'animation sur la machine
+save_animation = True #si on sauvegarde l'animation sur la machine
 animation_interval = 5  #Intervalle pour l'animation (tout les combiens de step on sauvegarde les positions)
 
 ############################### fonctions ###############################
@@ -74,12 +77,12 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
         interval=50 #50ms -> 20fps
     )
     if save_animation :
-        ani.save("lennard-jones.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
+        ani.save("transition-de-phase.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
         plt.close(fig)
     else :
         plt.show()
 
-def init_lattice() : 
+def init_lattice(T) : 
     position, position_before = [], []
     part_side = int(np.sqrt(NbrPart))
     spacing = L
@@ -96,47 +99,49 @@ def init_lattice() :
     vy = np.random.normal(0.0, np.sqrt(KB * Ti / M), NbrPart)
     vx -= np.mean(vx) #Centrage des vitesses
     vy -= np.mean(vy)
-    v = np.column_stack((vx, vy))
-    position_before = position - EPSILON * v #pour utiliser la methode de résolution d'equation diff de Verlet
-    position, position_before = equilibrium_state(np.array(position), np.array(position_before), Ti) #on thermalise notre systeme
-    return position, position_before
+    vitesses = np.column_stack((vx, vy))
+    position, vitesses = equilibrium_state(np.array(position), vitesses, T) #on met notre système a la temperature T
+    return position, vitesses
 
-def simulate(position, position_before, i, T) :
-    vitesses = (position - position_before) / EPSILON #vitesse des particules
-    vitesses = apply_andersen_thermostat(vitesses, T) # Appliquer le thermostat d'Andersen aux vitesses
-    
-    # Recalculer les positions avant en fonction des vitesses corrigées
-    position_before = position - EPSILON * vitesses
-
-    position_test = 2 * position - position_before + EPSILON * EPSILON * f(vitesses ,position, i * EPSILON) #calcule de la position d'apres avec Verlet
-    position_before = position #on conserve la position de la particule juste avant
-    
+def PBC(position, vitesses) :
     #Boundry Condition au choix :
-    
     if REBOND : # rebond sur la paroie :
         for i in range(NbrPart):  # Pour chaque particule
             j = 0
             for d in range(D) :
-                while position_test[i][d] > L or position_test[i][d] < 0 :
-                    if position_test[i][d] > L:  # Si la particule dépasse le bord supérieur
-                        position_test[i][d] = (1 + E) * L - E * position_test[i][d]  # Inverser la position
-                        position_before[i][d] = 2 * L - position_before[i][d]  # Inverser la vitesse 
-                    elif position_test[i][d] < 0:  # Si la particule dépasse le bord inférieur
-                        position_test[i][d] = - E * position_test[i][d]  # Inverser la position
-                        position_before[i][d] = - position_before[i][d]  # Inverser la vitesse
+                while position[i][d] > L or position[i][d] < 0 :
+                    if position[i][d] > L:  # Si la particule dépasse le bord supérieur
+                        position[i][d] = 2 * L - position[i][d]  # Inverser la position
+                        vitesses[i][d] = - E * vitesses[i][d]  # Inverser la vitesse 
+                    elif position[i][d] < 0:  # Si la particule dépasse le bord inférieur
+                        position[i][d] = - position[i][d]  # Inverser la position
+                        vitesses[i][d] = - E * vitesses[i][d]  # Inverser la vitesse
                     j += 1
                     if j > 10 :
                         break
-        position = np.array(position_test)
-        
     else : #bords periodiques
-        position = position_test%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
-    return position, position_before
+        position = position%L #si par exemple x = L + 2 -> x = 2 pour rester dans la boite
+    return position, vitesses
 
-def equilibrium_state(position, position_before, T) : #on laisse le systeme ce mettre a un etat d'équilibre apres sa génération
+def simulate(position, vitesses, i, T) :
+    #Verlet vitesse
+    vitesses += 0.5 * f(vitesses, position, i * EPSILON) * EPSILON
+    position += vitesses * EPSILON
+    
+    #application des PBC
+    position, vitesses = PBC(position, vitesses)
+         
+    vitesses += 0.5 * f(vitesses, position, i * EPSILON) * EPSILON
+         
+    # Thermostat d'Andersen
+    vitesses = apply_andersen_thermostat(vitesses, T)
+    
+    return position, vitesses
+
+def equilibrium_state(position, vitesses, T) : #on laisse le systeme ce mettre a un etat d'équilibre apres sa génération
     for t in range(EQUILIBRE_TIME) :
-        position, position_before = simulate(position, position_before, t, T)
-    return position, position_before
+        position, vitesses = simulate(position, vitesses, t, T)
+    return position, vitesses
 
 def compute_temperature(v) : #Calcule la température instantanée du système à partir des vitesses
     Ke = 0.5 * M * np.sum(v*v)  # Énergie cinétique totale
@@ -148,7 +153,7 @@ def apply_andersen_thermostat(v, T): #Applique le thermostat d'Andersen en rempl
     for i in range(NbrPart) :
         if np.random.rand() <= EPSILON / NU :  # Collision avec probabilité ν * dt
             v[i] = np.random.normal(0.0, np.sqrt(KB * T / M), D)  # Nouvelle vitesse
-            print("1", end = " ")
+            #print("1", end = " ") #debugage pour savoir combien de fois ca a changer de vitesse
     return v
 
 def lennardJ(ri,rj) : #force de Lennard Jones entre la particule en position ri et celle en position rj
@@ -195,30 +200,35 @@ def f(v, r ,t) : #fonction dans l'équadiff r" = f(r', r, t)
 start_time = time.perf_counter()
 
 #init des positions
-position, position_before = init_lattice()
+T_int = 0 #la combientième temperature intermediaire a la quelle on est ici la premiere donc Ti
+position, vitesses = init_lattice(TEMPERATURE[T_int])
+print(f"{0000}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {compute_temperature(vitesses)}")
 
 #init des resultats
 positions_for_animation = [] #permet de stocker les positions que l'on souhaite utiliser pour l'animation
-temperature_evolution = []
-pas_temps = []
+temperature_evolution, pas_temps = [], []
 
 #calcul des trajectoires avec Verlet
-for j in range(N) :
-    position, position_before = simulate(position, position_before, j, Tf)
+for i in range(N) :
+    position, vitesses = simulate(position, vitesses, i, TEMPERATURE[T_int])
 
-    # stock la position pour l'animation
-    if save_frames and (j % animation_interval == 0) : #pour ne pas stocker inutilement
+    #change de temperature tout les {N / len(TEMPERATURE)} pas jusqu'a atteindre Tf
+    if N / len(TEMPERATURE) <= i - T_int * N / len(TEMPERATURE) :
+        T_int += 1
+        print(f"{i}/{N}, température visé : {TEMPERATURE[T_int - 1]}, température acctuel : {T_inst}")
+
+    # stock la position pour l'animation et la température pour le graphique
+    if save_frames and (i % animation_interval == 0) : #pour ne pas stocker inutilement
         positions_for_animation.append(np.copy(position))
         
-        vitesses = (position - position_before) / EPSILON
         T_inst = compute_temperature(vitesses)
         temperature_evolution.append(T_inst)
-        pas_temps.append(j*EPSILON)
+        pas_temps.append(i*EPSILON)
+print(f"{N}/{N}, température visé : {TEMPERATURE[T_int]}, température acctuel : {T_inst}")
 
 #temps que met le programme
 end_time = time.perf_counter()
 execution_time = end_time - start_time
- 
 print(f"Programme exécuté en : {convert(execution_time)}")
 
 # lance l'animation
