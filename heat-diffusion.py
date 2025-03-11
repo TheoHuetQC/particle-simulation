@@ -68,7 +68,7 @@ def animate_trajectory(positions_for_animation, L): #Animation des trajectoires 
         interval=50 #50ms -> 20fps
     )
     if save_animation :
-        ani.save("transition-de-phase.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
+        ani.save("heat-diffusion.mp4", writer="ffmpeg", fps=20) #pour sauvegarder l'animation en .mp4 avec ffmpeg
         plt.close(fig)
     else :
         plt.show()
@@ -97,7 +97,7 @@ for n in range(Nt-1) :
     #a gauche
     if THERMOSTAT_LEFT : #Dirichlet condition (Thermostat au bord a température T_LEFT)
         u[n+1, 0] = T_LEFT
-    elif NEUMANN_LEFT : #Neumann condition : la derivé au bord est 0 mur adiabatique
+    elif NEUMANN_LEFT : #Neumann condition (la derivé au bord est 0 mur adiabatique)
         u[n+1, 0] = u[n+1, 1]
     elif WALL_LEFT : #on a un mur qui transmet de l'energie depuis l exterieur de la boite avec un coefficient alpha
         u[n+1, 0] = ALPHA_LEFT * (T_LEFT - u[n, 0]) * dx + u[n+1, 1]
@@ -105,7 +105,7 @@ for n in range(Nt-1) :
     #a droite
     if THERMOSTAT_RIGHT : #Dirichlet condition (Thermostat au bord a température T_RIGHT)
         u[n+1, Nx-1] = T_RIGHT
-    elif NEUMANN_RIGHT : #Neumann condition : la derivé au bord est 0 mur adiabatique
+    elif NEUMANN_RIGHT : #Neumann condition (la derivé au bord est 0 mur adiabatique)
         u[n+1, Nx-1] = u[n+1, Nx-2]
     elif WALL_RIGHT : #on a un mur qui transmet de l'energie depuis l exterieur de la boite avec un coefficient alpha
         u[n+1, Nx-1] = ALPHA_RIGHT * (T_RIGHT - u[n, Nx-1]) * dx + u[n+1, Nx-2]
