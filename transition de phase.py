@@ -35,7 +35,7 @@ NU = 100
 
 #pour l'aniamtion :
 save_frames = True  #si on fait une annimation
-save_animation = True #si on sauvegarde l'animation sur la machine
+save_animation = False #si on sauvegarde l'animation sur la machine
 animation_interval = 5  #Intervalle pour l'animation (tout les combiens de step on sauvegarde les positions)
 
 #pour les mesures :
@@ -231,12 +231,12 @@ for i in range(N) :
     K_inst += K_temp
     if (i % mesure_interval == 0) :
         # mesure Température
-        T_inst /= mesure_interval #fait une moyenne
+        T_inst /= mesure_interval # fait une moyenne
         temperature_evolution.append(T_inst)
         T_inst = 0
 
         # mesure de l'énérgie cinetique
-        K_inst /= mesure_interval #fait une moyenne
+        K_inst /= mesure_interval # fait une moyenne
         kinetic_evolution.append(K_inst)
         K_inst = 0
 
