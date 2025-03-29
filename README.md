@@ -31,7 +31,7 @@ This project explores:
 - Result : ![phase-transition-Temperature.png](phase-transition/phase-transition-Temperature.png)  
 - **Visualization:** [phase-transition.mp4](phase-transition/phase-transition.mp4)  
 - **Code:** [phase-transition.py](phase-transition/phase-transition.py)
-- 
+
 ---
 
 ## 🛠 Installation & Dependencies  
