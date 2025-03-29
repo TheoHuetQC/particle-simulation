@@ -14,19 +14,24 @@ This project explores:
 ### 1️⃣ **Free-Fall Simulation (Introduction to Verlet Integration)**  
 - Simulates a **particle under gravity** using the Verlet algorithm.  
 - Demonstrates the accuracy of **symplectic integration** over time.  
-- **Visualized with Matplotlib animations**.  
-
+- **Visualized with Matplotlib animations** [free-fall.mp4](free-fall/free-fall.mp4)  
+- **Code:** [free-fall.py](free-fall/free-fall.py)
+- 
 ### 2️⃣ **Lennard-Jones Potential (Particle Interactions)**  
 - Models **interactions between particles** using the **Lennard-Jones potential**.  
 - Simulates **attractive and repulsive forces** at different distances.  
 - Used to study **molecular interactions** and **phase behavior**.  
-
+- **Visualization:** [lennard-jones.mp4](lennard-jones/lennard-jones.mp4)  
+- **Code:** [lennard-jones.py](lennard-jones/lennard-jones.py)
+- 
 ### 3️⃣ **Phase Transition Simulation (Liquid-Solid Transition)**  
 - Implements a **2D phase transition** from liquid to solid.  
 - Uses the **Andersen thermostat** to control temperature.  
 - Demonstrates the emergence of **crystalline structures** from disordered motion.  
-- Result : ![transition_de_phase-Temperature.png](transition_de_phase-Temperature.png)  
-
+- Result : ![phase-transition-Temperature.png](phase-transition/phase-transition-Temperature.png)  
+- **Visualization:** [phase-transition.mp4](phase-transition/phase-transition.mp4)  
+- **Code:** [phase-transition.py](phase-transition/phase-transition.py)
+- 
 ---
 
 ## 🛠 Installation & Dependencies  
@@ -44,33 +49,35 @@ pip install numpy matplotlib
 Run any of the simulations with:
 
 ```bash
-python free-fall.py
-python lennard-jones-potential.py
-python transition de phase.py
+python free-fall/free-fall.py
+python lennard-jones/lennard-jones-potential.py
+python phase-transition/phase-transition.py
 ```
 Animations and results will be displayed automatically.
 
 ---
 
-📂 Project Structure
 
+## 📂 Project Structure
+
+```bash
 📂 particle-simulation/
-
-├── 📜 README.md (This file)
-
-├── 🎥 free-fall.mp4 (Animation of a free-fall simulation)
-
-├── 🎥 lennard-jones.mp4 (Particle interaction using Lennard-Jones potential)
-
-├── 🎥 transition-de-phase.mp4 (Phase transition simulation output)
-
-├── 📊 transition_de_phase-Temperature.png (Temperature evolution during phase transition)
-
-├── 📝 free-fall.py (Gravitational simulation using Verlet method)
-
-├── 📝 lennard-jones-potential.py (Simulation of Lennard-Jones interactions)
-
-└── 📝 transition de phase.py (2D phase transition with Andersen thermostat)
+│
+├── 📂 free-fall
+│    ├── 📝 free-fall.py (Gravitational simulation using Verlet method)
+│    └── 🎥 free-fall.mp4 (Animation of a free-fall simulation)
+│
+├── 📂 lennard-jones
+│    ├── 📝 lennard-jones-potential.py (Simulation of Lennard-Jones interactions)
+│    └── 🎥 lennard-jones.mp4 (Particle interaction using Lennard-Jones potential)
+│
+└── 📂 
+│    ├── 📝 transition de phase.py (2D phase transition with Andersen thermostat)
+│    ├── 🎥 transition-de-phase.mp4 (Phase transition simulation output)
+│    └── 📊 transition_de_phase-Temperature.png (Temperature evolution during phase transition)
+│
+└── 📜 README.md (This file)
+```
 
 ---
 
