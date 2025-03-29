@@ -16,14 +16,14 @@ This project explores:
 - Demonstrates the accuracy of **symplectic integration** over time.  
 - **Visualized with Matplotlib animations** [free-fall.mp4](free-fall/free-fall.mp4)  
 - **Code:** [free-fall.py](free-fall/free-fall.py)
-- 
+
 ### 2️⃣ **Lennard-Jones Potential (Particle Interactions)**  
 - Models **interactions between particles** using the **Lennard-Jones potential**.  
 - Simulates **attractive and repulsive forces** at different distances.  
 - Used to study **molecular interactions** and **phase behavior**.  
 - **Visualization:** [lennard-jones.mp4](lennard-jones/lennard-jones.mp4)  
 - **Code:** [lennard-jones.py](lennard-jones/lennard-jones.py)
-- 
+
 ### 3️⃣ **Phase Transition Simulation (Liquid-Solid Transition)**  
 - Implements a **2D phase transition** from liquid to solid.  
 - Uses the **Andersen thermostat** to control temperature.  
